@@ -60,6 +60,9 @@
                         case TestsEnum.TaskWaitAllExceptionHandling:
                             await TaskWaitAllExceptionHandling();
                             break;
+                        case TestsEnum.DemoThreadDebugging:
+                            await DemoThreadDebugging();
+                            break;
                         default:
                             throw new ArgumentOutOfRangeException();
                     }
@@ -306,12 +309,12 @@
             var taskList = new List<Task>();
             for (int i =1; i<= count; i++)
             {
-                taskList.Add(adl.StartIteration(i, DelayDurationOne, "TaskWhenAllHugeNumberOfTasksDelayLoopTests"));
+                taskList.Add(adl.StartIteration(i, DelayDurationOne, "TaskWhenAllHugeNumberOfTasksDelayLoopTests", true));
             }
 
             await Task.WhenAll(taskList.ToArray());
 
-            Console.WriteLine($"Duration of Task.WhenAll delay iteration loop for {count} iterations delay for {DelayDurationOne * 10} ms was {sw.ElapsedMilliseconds} ms");
+            Console.WriteLine($"Duration of Task.WhenAll delay iteration loop for {count} iterations delay for {DelayDurationOne} ms was {sw.ElapsedMilliseconds} ms");
         }
 
         private static async Task TaskWhenAllExceptionHandling()
@@ -359,6 +362,25 @@
             }
 
             return Task.CompletedTask;
+        }
+
+        private static async Task DemoThreadDebugging()
+        {
+            WriteMethodStartMessage("DemoThreadDebugging starting...");
+
+            var sw = Stopwatch.StartNew();
+            var count = 5;
+            var adl = new AsyncDelayLoop();
+
+            var taskList = new List<Task>();
+            for (int i = 1; i <= count; i++)
+            {
+                taskList.Add(adl.StartIteration(i, DelayDurationOne, "DemoThreadDebugging", true));
+            }
+
+            await Task.WhenAll(taskList.ToArray());
+
+            Console.WriteLine($"Duration of Task.WhenAll delay iteration loop for {count} iterations delay for {DelayDurationOne} ms was {sw.ElapsedMilliseconds} ms");
         }
     }
 }

@@ -13,6 +13,7 @@
         TaskWhenAllSleepAndDelayLoopTests,
         TaskWhenAllHugeNumberOfTasksDelayLoopTests,
         TaskWhenAllExceptionHandling,
-        TaskWaitAllExceptionHandling
+        TaskWaitAllExceptionHandling,
+        DemoThreadDebugging
     }
 }

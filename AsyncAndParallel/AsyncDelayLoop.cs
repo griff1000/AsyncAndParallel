@@ -15,16 +15,19 @@
             }
         }
 
-        public async Task StartIteration(int iteration, int delayDuration, string identifier)
+        public async Task StartIteration(int iteration, int delayDuration, string identifier, bool extraIterativeDelay = false)
         {
             await Task.Delay(delayDuration);
             Console.WriteLine($"Async delay iteration task call {iteration} complete for {identifier}");
 
             //For threading debug demo
-            for (int i = 0; i < 10; i++)
+            if (extraIterativeDelay)
             {
-                var delayOfOne = i - 1 + 1001;
-                await Task.Delay(500);
+                for (int i = 0; i < 10; i++)
+                {
+                    var delayOfOne = i - 1 + 1001;
+                    await Task.Delay(500 + delayOfOne - delayOfOne);
+                }
             }
         }
     }

@@ -9,7 +9,7 @@
         public async Task StartIteration(int iteration, int delayDuration, string identifier)
         {
             await Task.Delay(delayDuration);
-            if (iteration % 2 == 0) throw new ApplicationException("Can't stand those even bastards!");
+            if (iteration % 2 == 0) throw new ApplicationException($"Can't stand those even bastards! Take your {iteration} and bugger off!");
 
             Console.WriteLine($"Async sleep iteration task call {iteration} complete for {identifier}");
 
