@@ -8,10 +8,10 @@
 
     internal class Program
     {
-        private static bool _delayAfterOperation = false;
         private static ConsoleColor _normalColour;
         private const int DelayDurationOne = 500;
-        private const int DelayDurationTwo = 300;
+        private const int IterationCount = 10;
+
         private static async Task Main(string[] args)
         {
             _normalColour = Console.ForegroundColor;
@@ -75,18 +75,13 @@
         }
 
         #region helpers
-        private static void WriteMethodStartMessage(string message)
+        private static Stopwatch BeginExample(string message)
         {
             Console.ForegroundColor = ConsoleColor.Blue;
             Console.WriteLine(message);
             Console.ForegroundColor = _normalColour;
+            return Stopwatch.StartNew();
         }
-
-        private static async Task DelayIfRequired()
-        {
-            if (_delayAfterOperation) await Task.Delay(DelayDurationOne + 100);
-        }
-
         private static TestsEnum[] GetTests()
         {
             string input;
@@ -136,197 +131,235 @@
 
         #endregion
 
+        /// <summary>
+        /// Loops around a blocking method trying to do it asynchronously (but it's blocking so it can't)
+        /// with no parallelism
+        /// </summary>
         private static async Task SleepLoopTests()
         {
-            WriteMethodStartMessage("SleepLoopTests starting...");
-            var count = 10;
+            var sw = BeginExample("SleepLoopTests starting...");
 
-            var sw = Stopwatch.StartNew();
-            var asl1 = new AsyncSleepLoop();
-            await asl1.StartSleepLoop(count, DelayDurationOne, "One");
-            sw.Stop();
-            await DelayIfRequired();
-
-            Console.WriteLine($"Duration of async sleep iteration loop for {count} iterations sleeping for {DelayDurationOne} ms was {sw.ElapsedMilliseconds} ms");
-
-            sw = Stopwatch.StartNew();
-            var asl2 = new AsyncSleepLoop();
-            for (var i = 0; i < count; i++)
+            var sut = new BlockingMethod();
+            for (var i = 0; i < IterationCount; i++)
             {
-                await asl2.StartIteration(i, DelayDurationTwo, "Two");
+                await sut.StartIteration(i, DelayDurationOne, "One");
             }
             sw.Stop();
-            await DelayIfRequired();
 
-            Console.WriteLine($"Duration of async sleep iteration loop for {count} iterations sleeping for {DelayDurationTwo} ms was {sw.ElapsedMilliseconds} ms");
+            Console.WriteLine($"Duration of async sleep iteration loop for {IterationCount} iterations sleeping for {DelayDurationOne} ms was {sw.ElapsedMilliseconds} ms");
         }
 
+        /// <summary>
+        /// Loops around a non-blocking method asynchronously but with no parallelism
+        /// </summary>
         private static async Task DelayLoopTests()
         {
-            WriteMethodStartMessage("DelayLoopTests starting...");
-            var sw = Stopwatch.StartNew();
-            var count = 10;
-            var adl1 = new AsyncDelayLoop();
-            await adl1.StartDelayLoop(count, DelayDurationOne, "DelayLoopTests One");
-            sw.Stop();
-            await DelayIfRequired();
-            Console.WriteLine($"Duration of async delay iteration loop for {count} iterations delaying for {DelayDurationOne} ms was {sw.ElapsedMilliseconds} ms");
+            var sw = BeginExample("DelayLoopTests starting...");
 
-            sw = Stopwatch.StartNew();
-            var adl2 = new AsyncDelayLoop();
-            for (var i = 0; i < 10; i++)
+            var sut = new NonBlockingMethod();
+            for (var i = 0; i < IterationCount; i++)
             {
-                await adl2.StartIteration(i, DelayDurationTwo, "DelayLoopTests Two");
+                await sut.StartIteration(i, DelayDurationOne, "One");
             }
             sw.Stop();
-            await DelayIfRequired();
-            Console.WriteLine($"Duration of async delay iteration loop for {count} iterations delay for {DelayDurationTwo} ms was {sw.ElapsedMilliseconds} ms");
+            Console.WriteLine($"Duration of async delay iteration loop for {IterationCount} iterations delay for {DelayDurationOne} ms was {sw.ElapsedMilliseconds} ms");
         }
 
-        private static async Task ParallelForEachSleepLoopTests()
+        /// <summary>
+        /// Does a parallel ForEach around a blocking method
+        /// </summary>
+        /// <remarks>Since the method is blocking (even though it returns a task) the Console.WriteLine won't
+        /// be executed till all calls have been completed in parallel</remarks>
+        private static Task ParallelForEachSleepLoopTests()
         {
-            WriteMethodStartMessage("ParallelForEachSleepLoopTests starting...");
+            var sw = BeginExample("ParallelForEachSleepLoopTests starting...");
 
-            var sw = Stopwatch.StartNew();
             var array = new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-            var asl = new AsyncSleepLoop();
-            Parallel.ForEach(array, (i, state) => asl.StartIteration(i, DelayDurationOne, "ParallelForEachSleepLoopTests"));
-            await DelayIfRequired();
-            Console.WriteLine($"Duration of Parallel.ForEach sleep iteration loop for {array.Length} iterations sleep for {DelayDurationOne} ms was {sw.ElapsedMilliseconds} ms");
-        }
-
-        private static async Task ParallelForEachDelayLoopTests()
-        {
-            WriteMethodStartMessage("ParallelForEachDelayLoopTests starting...");
-
-            var sw = Stopwatch.StartNew();
-            var array = new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-            var adl = new AsyncDelayLoop();
-            Parallel.ForEach(array, (i, state) => adl.StartIteration(i, DelayDurationOne, "ParallelForEachDelayLoopTests"));
-            await DelayIfRequired();
-            Console.WriteLine($"Duration of Parallel.ForEach delay iteration loop for {array.Length} iterations delay for {DelayDurationOne} ms was {sw.ElapsedMilliseconds} ms");
-        }
-
-        private static async Task ParallelForEachDelayLoopWithAsyncTests()
-        {
-            WriteMethodStartMessage("ParallelForEachDelayLoopWithAsyncTests starting...");
-
-            var sw = Stopwatch.StartNew();
-            var array = new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-            var adl = new AsyncDelayLoop();
-            Parallel.ForEach(array, async (i, state) => await adl.StartIteration(i, DelayDurationOne, "ParallelForEachDelayLoopWithAsyncTests"));
+            var sut = new BlockingMethod();
+            Parallel.ForEach(array, (i, state) => sut.StartIteration(i, DelayDurationOne, "ParallelForEachSleepLoopTests"));
             sw.Stop();
-            await DelayIfRequired();
-            Console.WriteLine($"Duration of Parallel.ForEach delay iteration loop for {array.Length} iterations delay for {DelayDurationOne} ms was {sw.ElapsedMilliseconds} ms");
+            Console.WriteLine($"Duration of Parallel.ForEach sleep iteration loop for {array.Length} iterations sleep for {DelayDurationOne} ms was {sw.ElapsedMilliseconds} ms");
+            return Task.CompletedTask;
         }
 
+        /// <summary>
+        /// Does a parallel ForEach around a non-blocking method
+        /// </summary>
+        /// <remarks>Since the method is non-blocking and will therefore return a task instantly the Console.WriteLine will be
+        /// executed almost immediately, before any of the the tasks have had a chance to complete</remarks>
+        private static Task ParallelForEachDelayLoopTests()
+        {
+            var sw = BeginExample("ParallelForEachDelayLoopTests starting...");
+
+            var array = new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+            var sut = new NonBlockingMethod();
+            Parallel.ForEach(array, (i, state) => sut.StartIteration(i, DelayDurationOne, "ParallelForEachDelayLoopTests"));
+            
+            sw.Stop();
+            Console.WriteLine($"Duration of Parallel.ForEach delay iteration loop for {array.Length} iterations delay for {DelayDurationOne} ms was {sw.ElapsedMilliseconds} ms");
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Does a parallel ForEach around a non-blocking method with async/await
+        /// </summary>
+        /// <remarks>Even though Parallel.ForEach is being used with the async/await operators, it's not doing what
+        /// you expect; it's still not actually awaiting the tasks on the current thread so the Console.WriteLine
+        /// is executing much earlier than you would expect, before any of the method calls have completed.
+        /// NB even though Parallel.ForEach uses async/await in its lambda, it is not itself async so we
+        /// do not need to mark this test method as async</remarks>
+        private static Task ParallelForEachDelayLoopWithAsyncTests()
+        {
+            var sw = BeginExample("ParallelForEachDelayLoopWithAsyncTests starting...");
+
+            var array = new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+            var sut = new NonBlockingMethod();
+            Parallel.ForEach(array, async (i, state) => await sut.StartIteration(i, DelayDurationOne, "ParallelForEachDelayLoopWithAsyncTests"));
+            
+            sw.Stop();
+            Console.WriteLine($"Duration of Parallel.ForEach delay iteration loop for {array.Length} iterations delay for {DelayDurationOne} ms was {sw.ElapsedMilliseconds} ms");
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Does a parallel ForEach around a non-blocking method with async/await AND attaches the tasks to the parent
+        /// </summary>
+        /// <remarks>Even though Parallel.ForEach is being used with the async/await operators and attaching tasks
+        /// to the parent thread, it's still not doing what you expect; the Console.WriteLine
+        /// is still executing much earlier than you would expect, before any of the method calls have completed.
+        /// This may be a badly written test; I *THINK* what's happening here is that the Task.Factory.StartNew
+        /// creates a single new task (on a new thread) that does have the parent set correctly; however that
+        /// thread then runs the Parallel.ForEach which kicks off a bunch of new tasks, each on their own thread,
+        /// which aren't connected to the parent as you'd hope.</remarks>
+        
         private static async Task ParallelForEachDelayLoopWithAsyncAttachedTests()
         {
-            WriteMethodStartMessage("ParallelForEachDelayLoopWithAsyncAttachedTests starting...");
+            var sw = BeginExample("ParallelForEachDelayLoopWithAsyncAttachedTests starting...");
 
-            var sw = Stopwatch.StartNew();
             var array = new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-            var adl = new AsyncDelayLoop();
+            var sut = new NonBlockingMethod();
 
             await Task.Factory.StartNew(() =>
             {
                 Parallel.ForEach(array,
-                    async (i, state) => await adl.StartIteration(i, DelayDurationOne, "ParallelForEachDelayLoopWithAsyncAttachedTests"));
+                    async (i, state) => await sut.StartIteration(i, DelayDurationOne, "ParallelForEachDelayLoopWithAsyncAttachedTests"));
             }, TaskCreationOptions.AttachedToParent);
+            
             sw.Stop();
-            await DelayIfRequired();
             Console.WriteLine($"Duration of attached Parallel.ForEach delay iteration loop for {array.Length} iterations delay for {DelayDurationOne} ms was {sw.ElapsedMilliseconds} ms");
         }
 
+        /// <summary>
+        /// Kicks off a number or tasks but instead of awaiting them it adds the tasks to a <see cref="List{Task}"/>
+        /// and then does a Task.WhenAll on that list.
+        /// </summary>
+        /// <remarks>Now the Console.WriteLine executes when we expect it to, after all tasks have completed.  Those
+        /// tasks have been run in parallel though, since we weren't awaiting any individual task, just waiting
+        /// for them all to have completed.</remarks>
         private static async Task TaskWhenAllDelayLoopTests()
         {
-            WriteMethodStartMessage("TaskWhenAllDelayLoopTests starting...");
+            var sw = BeginExample("TaskWhenAllDelayLoopTests starting...");
 
-            var sw = Stopwatch.StartNew();
-            var adl = new AsyncDelayLoop();
-            var count = 10;
-
+            var sut = new NonBlockingMethod();
             var taskList = new List<Task>();
-            for (int i = 1; i <= count; i++)
+            
+            for (var i = 1; i <= IterationCount; i++)
             {
-                taskList.Add(adl.StartIteration(i, DelayDurationOne, "TaskWhenAllDelayLoopTests"));
+                taskList.Add(sut.StartIteration(i, DelayDurationOne, "TaskWhenAllDelayLoopTests"));
             }
-
             await Task.WhenAll(taskList.ToArray());
 
-            Console.WriteLine($"Duration of Task.WhenAll delay iteration loop for {count} iterations delay for {DelayDurationOne} ms was {sw.ElapsedMilliseconds} ms");
+            sw.Stop();
+            Console.WriteLine($"Duration of Task.WhenAll delay iteration loop for {IterationCount} iterations delay for {DelayDurationOne} ms was {sw.ElapsedMilliseconds} ms");
         }
 
+        /// <summary>
+        /// Kicks off a number or tasks but instead of awaiting them it adds the tasks to a <see cref="List{Task}"/>
+        /// and then does a Task.WaitAll on that list.
+        /// </summary>
+        /// <remarks>Now the Console.WriteLine executes when we expect it to, after all tasks have completed.  Those
+        /// tasks have been run in parallel though, since we weren't awaiting any individual task, just waiting
+        /// for them all to have completed.</remarks>
         private static Task TaskWaitAllDelayLoopTests()
         {
-            WriteMethodStartMessage("TaskWaitAllDelayLoopTests starting...");
+            var sw = BeginExample("TaskWaitAllDelayLoopTests starting...");
 
-            var sw = Stopwatch.StartNew();
-            var adl = new AsyncDelayLoop();
-            var count = 10;
-
+            var sut = new NonBlockingMethod();
             var taskList = new List<Task>();
-            for (int i=1; i <= count; i++)
+            
+            for (var i=1; i <= IterationCount; i++)
             {
-                taskList.Add(adl.StartIteration(i, DelayDurationOne, "TaskWaitAllDelayLoopTests"));
+                taskList.Add(sut.StartIteration(i, DelayDurationOne, "TaskWaitAllDelayLoopTests"));
             }
-
             Task.WaitAll(taskList.ToArray());
 
-            Console.WriteLine($"Duration of Task.WhenAll delay iteration loop for {count} iterations delay for {DelayDurationOne} ms was {sw.ElapsedMilliseconds} ms");
-
+            sw.Stop();
+            Console.WriteLine($"Duration of Task.WaitAll delay iteration loop for {IterationCount} iterations delay for {DelayDurationOne} ms was {sw.ElapsedMilliseconds} ms");
             return Task.CompletedTask;
         }
 
+        /// <summary>
+        /// Kicks off a fairly large number of tasks containing a mixture of blocking and non-blocking calls
+        /// </summary>
+        /// <remarks>The first few tasks are created in parallel but then due to the blocking calls the
+        /// thread pool gets exhausted so subsequent tasks have to wait till previous ones have been
+        /// completed</remarks>
         private static async Task TaskWhenAllSleepAndDelayLoopTests()
         {
-            WriteMethodStartMessage("TaskWhenAllSleepAndDelayLoopTests starting...");
+            var sw = BeginExample("TaskWhenAllSleepAndDelayLoopTests starting...");
 
-            var sw = Stopwatch.StartNew();
-            var count = 100;
-            var adsl = new AsyncDelayAndSleepLoop();
-
+            const int count = 100;
+            var sut = new MixedBlockingAndNonBlockingCallsMethod();
             var taskList = new List<Task>();
-            for (int i = 1; i <= count; i++)
-            {
-                taskList.Add(adsl.StartIteration(i, DelayDurationOne, "TaskWhenAllSleepAndDelayLoopTests"));
-            }
 
-            
+            for (var i=1; i <= count; i++)
+            {
+                taskList.Add(sut.StartIteration(i, DelayDurationOne, "TaskWhenAllSleepAndDelayLoopTests"));
+            }
             await Task.WhenAll(taskList.ToArray());
 
+            sw.Stop();
             Console.WriteLine($"Duration of Task.WhenAll delay iteration loop for {count} iterations delay for {DelayDurationOne * 10} ms was {sw.ElapsedMilliseconds} ms");
         }
 
+        /// <summary>
+        /// Kicks off a very large number of tasks containing all non-blocking calls
+        /// </summary>
+        /// <remarks>Since each call is non-blocking, the thread becomes available to process other tasks straight
+        /// away so the thread pool doesn't get exhausted and you get massive throughput.  Once complete, each task
+        /// can get picked up again by a random thread, not necessarily the one it started on.</remarks>
         private static async Task TaskWhenAllHugeNumberOfTasksDelayLoopTests()
         {
-            WriteMethodStartMessage("TaskWhenAllHugeNumberOfTasksDelayLoopTests starting...");
+            var sw = BeginExample("TaskWhenAllHugeNumberOfTasksDelayLoopTests starting...");
 
-            var sw = Stopwatch.StartNew();
-            var count = 10000;
-            var adl = new AsyncDelayLoop();
-
+            const int count = 10000;
+            var sut = new NonBlockingMethod();
             var taskList = new List<Task>();
-            for (int i =1; i<= count; i++)
-            {
-                taskList.Add(adl.StartIteration(i, DelayDurationOne, "TaskWhenAllHugeNumberOfTasksDelayLoopTests", true));
-            }
 
+            for (var i=1; i <= count; i++)
+            {
+                taskList.Add(sut.StartIteration(i, DelayDurationOne, "TaskWhenAllHugeNumberOfTasksDelayLoopTests", true));
+            }
             await Task.WhenAll(taskList.ToArray());
 
+            sw.Stop();
             Console.WriteLine($"Duration of Task.WhenAll delay iteration loop for {count} iterations delay for {DelayDurationOne} ms was {sw.ElapsedMilliseconds} ms");
         }
 
+        /// <summary>
+        /// Kicks off a bunch of non-blocking tasks, half of which will throw exceptions
+        /// </summary>
+        /// <remarks>All tasks run; of those which throw exceptions, only the first exception is returned.  All other
+        /// tasks run until completion in splendid isolation</remarks>
         private static async Task TaskWhenAllExceptionHandling()
         {
-            WriteMethodStartMessage("TaskWhenAllExceptionHandling starting...");
+            BeginExample("TaskWhenAllExceptionHandling starting...");
 
-            var count = 10;
             var taskList = new List<Task>();
-            var taskClass = new AsyncDoStuffThrowOccasionalException();
-            for (int i = 0; i< count; i++)
+            var sut = new NonBlockingButThrowsOccasionalException();
+            for (int i = 0; i< IterationCount; i++)
             {
-                taskList.Add(taskClass.StartIteration(i, 1, $"TaskWhenAllExceptionHandling iteration {i}"));
+                taskList.Add(sut.StartIteration(i, 1, $"TaskWhenAllExceptionHandling iteration {i}"));
             }
 
             try
@@ -340,16 +373,20 @@
 
         }
 
+        /// <summary>
+        /// Kicks off a bunch of non-blocking tasks, half of which will throw exceptions
+        /// </summary>
+        /// <remarks>All tasks run; all exceptions thrown are returned in an AggregateException.  All other
+        /// tasks run until completion in splendid isolation</remarks>
         private static Task TaskWaitAllExceptionHandling()
         {
-            WriteMethodStartMessage("TaskWaitAllExceptionHandling starting...");
+            BeginExample("TaskWaitAllExceptionHandling starting...");
 
-            var count = 10;
             var taskList = new List<Task>();
-            var taskClass = new AsyncDoStuffThrowOccasionalException();
-            for (int i = 0; i < count; i++)
+            var sut = new NonBlockingButThrowsOccasionalException();
+            for (int i = 0; i < IterationCount; i++)
             {
-                taskList.Add(taskClass.StartIteration(i, 1, $"TaskWaitAllExceptionHandling iteration {i}"));
+                taskList.Add(sut.StartIteration(i, 1, $"TaskWaitAllExceptionHandling iteration {i}"));
             }
 
             try
@@ -364,23 +401,28 @@
             return Task.CompletedTask;
         }
 
+        /// <summary>
+        /// Make sure to put a breakpoint in the NonBlockingMethod.StartIteration method somewhere
+        /// within the extraIterativeDelay logic
+        /// </summary>
+        /// <remarks>Can use this to demo the threads, tasks and Parallel Watch windows, freezing threads/tasks,
+        /// switching between threads/tasks etc.</remarks>
         private static async Task DemoThreadDebugging()
         {
-            WriteMethodStartMessage("DemoThreadDebugging starting...");
+            BeginExample("DemoThreadDebugging starting...");
 
-            var sw = Stopwatch.StartNew();
             var count = 5;
-            var adl = new AsyncDelayLoop();
+            var sut = new NonBlockingMethod();
 
             var taskList = new List<Task>();
             for (int i = 1; i <= count; i++)
             {
-                taskList.Add(adl.StartIteration(i, DelayDurationOne, "DemoThreadDebugging", true));
+                taskList.Add(sut.StartIteration(i, DelayDurationOne, "DemoThreadDebugging", true));
             }
 
             await Task.WhenAll(taskList.ToArray());
 
-            Console.WriteLine($"Duration of Task.WhenAll delay iteration loop for {count} iterations delay for {DelayDurationOne} ms was {sw.ElapsedMilliseconds} ms");
+            Console.WriteLine($"DemoThreadDebugging complete");
         }
     }
 }
