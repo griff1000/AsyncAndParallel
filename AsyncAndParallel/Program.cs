@@ -314,7 +314,7 @@
 
             for (var i=1; i <= count; i++)
             {
-                taskList.Add(sut.StartIteration(i, DelayDurationOne, "TaskWhenAllSleepAndDelayLoopTests"));
+                taskList.Add(sut.StartIteration(i, DelayDurationOne, "TaskWhenAllSleepAndDelayLoopTests", false));
             }
             await Task.WhenAll(taskList.ToArray());
 
@@ -333,7 +333,7 @@
             var sw = BeginExample("TaskWhenAllHugeNumberOfTasksDelayLoopTests starting...");
 
             const int count = 10000;
-            var sut = new NonBlockingMethod();
+            var sut = new MixedBlockingAndNonBlockingCallsMethod();
             var taskList = new List<Task>();
 
             for (var i=1; i <= count; i++)

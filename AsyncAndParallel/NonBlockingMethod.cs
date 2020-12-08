@@ -27,8 +27,8 @@
             {
                 for (var i = 0; i < 10; i++)
                 {
-                    var delayOfOne = i - 1 + 1001;
-                    await Task.Delay(500 + delayOfOne - delayOfOne);
+                    var exampleDelayCalculation = i - 1 + 1001;  // could be anything, just something to set a breakpoint on
+                    await Task.Delay(500 + exampleDelayCalculation - exampleDelayCalculation);
                 }
             }
         }
